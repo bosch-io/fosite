@@ -22,6 +22,7 @@
 package compose
 
 import (
+	"github.com/ory/fosite"
 	"github.com/ory/fosite/handler/oauth2"
 )
 
@@ -70,6 +71,7 @@ func OAuth2RefreshTokenGrantFactory(config *Config, storage interface{}, strateg
 		ScopeStrategy:            config.GetScopeStrategy(),
 		AudienceMatchingStrategy: config.GetAudienceStrategy(),
 		RefreshTokenScopes:       config.GetRefreshTokenScopes(),
+		Store:                    storage.(fosite.Storage),
 	}
 }
 
@@ -82,6 +84,24 @@ func OAuth2AuthorizeImplicitFactory(config *Config, storage interface{}, strateg
 		AccessTokenLifespan:      config.GetAccessTokenLifespan(),
 		ScopeStrategy:            config.GetScopeStrategy(),
 		AudienceMatchingStrategy: config.GetAudienceStrategy(),
+	}
+}
+
+// OAuth2TokenExchangeFactory creates an OAuth2 token exchange handler and registers
+// an access token, refresh token and authorize code validator.
+func OAuth2TokenExchangeFactory(config *Config, storage interface{}, strategy interface{}) interface{} {
+	return &oauth2.TokenExchangeGrantHandler{
+		AccessTokenStrategy:      strategy.(oauth2.AccessTokenStrategy),
+		AccessTokenStorage:       storage.(oauth2.AccessTokenStorage),
+		AccessTokenLifespan:      config.GetAccessTokenLifespan(),
+		ScopeStrategy:            config.GetScopeStrategy(),
+		AudienceMatchingStrategy: config.GetAudienceStrategy(),
+		RefreshTokenStrategy:     strategy.(oauth2.RefreshTokenStrategy),
+		RefreshTokenLifespan:     config.GetRefreshTokenLifespan(),
+		RefreshTokenScopes:       config.GetRefreshTokenScopes(),
+		CoreStorage:              storage.(oauth2.CoreStorage),
+		CoreStrategy:             strategy.(oauth2.CoreStrategy),
+		Store:                    storage.(fosite.Storage),
 	}
 }
 
@@ -116,8 +136,8 @@ func OAuth2TokenRevocationFactory(config *Config, storage interface{}, strategy 
 // an access token and refresh token validator.
 func OAuth2TokenIntrospectionFactory(config *Config, storage interface{}, strategy interface{}) interface{} {
 	return &oauth2.CoreValidator{
-		CoreStrategy:                  strategy.(oauth2.CoreStrategy),
 		CoreStorage:                   storage.(oauth2.CoreStorage),
+		CoreStrategy:                  strategy.(oauth2.CoreStrategy),
 		ScopeStrategy:                 config.GetScopeStrategy(),
 		DisableRefreshTokenValidation: config.DisableRefreshTokenValidation,
 	}

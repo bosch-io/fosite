@@ -23,4 +23,6 @@ require (
 	gopkg.in/square/go-jose.v2 v2.5.0
 )
 
+replace golang.org/x/oauth2 => products.bosch-si.com/stash/bisa/golang-oauth2 v0.0.0-tokex-contrib
+
 go 1.14

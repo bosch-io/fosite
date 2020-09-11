@@ -170,7 +170,6 @@ func (h *DefaultJWTStrategy) generate(ctx context.Context, tokenType fosite.Toke
 				time.Now().UTC(),
 				h.Issuer,
 			)
-
 		return h.JWTStrategy.Generate(ctx, claims.ToMapClaims(), jwtSession.GetJWTHeader())
 	}
 }

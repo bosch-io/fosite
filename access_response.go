@@ -62,6 +62,10 @@ func (a *AccessResponse) SetTokenType(name string) {
 	a.TokenType = name
 }
 
+func (a *AccessResponse) SetIssuedTokenType(tokenType string) {
+	a.SetExtra("issued_token_type", tokenType)
+}
+
 func (a *AccessResponse) GetAccessToken() string {
 	return a.AccessToken
 }

@@ -47,6 +47,7 @@ type RefreshTokenGrantHandler struct {
 	ScopeStrategy            fosite.ScopeStrategy
 	AudienceMatchingStrategy fosite.AudienceMatchingStrategy
 	RefreshTokenScopes       []string
+	Store                    fosite.Storage
 }
 
 // HandleTokenEndpointRequest implements https://tools.ietf.org/html/rfc6749#section-6
@@ -90,8 +91,22 @@ func (c *RefreshTokenGrantHandler) HandleTokenEndpointRequest(ctx context.Contex
 	request.SetRequestedScopes(originalRequest.GetRequestedScopes())
 	request.SetRequestedAudience(originalRequest.GetRequestedAudience())
 
+	var delegatingClient fosite.Client = nil
+	if originalRequest.GetDelegatingClient() != nil {
+		// original request was token exchange
+		delegatingClient, _ = c.Store.GetClient(ctx, originalRequest.GetDelegatingClient().GetID())
+		// keep delegating client for following refresh requests
+		request.SetDelegatingClient(delegatingClient)
+	}
+
+	// check if delegating client (still) has may_act claim for current client
+	if delegatingClient != nil && !delegatingClient.GetMayAct().HasOneOf(request.GetClient().GetID()) {
+		return errors.WithStack(fosite.ErrUnauthorizedClient.WithHint("The OAuth 2.0 Client is not allowed to perform a token exchange for the given subject token."))
+	}
+
 	for _, scope := range originalRequest.GetGrantedScopes() {
-		if !c.ScopeStrategy(request.GetClient().GetScopes(), scope) {
+		if !c.ScopeStrategy(request.GetClient().GetScopes(), scope) &&
+			(originalRequest.GetDelegatingClient() == nil || !c.ScopeStrategy(originalRequest.GetDelegatingClient().GetScopes(), scope)) {
 			return errors.WithStack(fosite.ErrInvalidScope.WithHintf("The OAuth 2.0 Client is not allowed to request scope \"%s\".", scope))
 		}
 		request.GrantScope(scope)
